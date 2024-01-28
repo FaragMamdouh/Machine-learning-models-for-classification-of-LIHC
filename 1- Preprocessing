@@ -1,0 +1,87 @@
+library(TCGAbiolinks)
+library(TCGAbiolinksGUI.data)
+?GDCquery
+# Gene expression aligned against hg38
+query <- GDCquery(
+  project = "TCGA-LIHC",
+  data.category = "Transcriptome Profiling",
+  data.type = "Gene Expression Quantification", 
+  workflow.type = "STAR - Counts",
+  sample.type = c("Primary Tumor")
+  )
+GDCdownload(query = query)
+data <- GDCprepare(query = query, summarizedExperiment = FALSE)
+data <- data[!(data$gene_id %in% c("N_unmapped", "N_multimapping", "N_noFeature", "N_ambiguous")), ]
+
+cancer = data
+cancer <- as.matrix(subset(cancer, gene_type == "protein_coding"))
+# Get the column indices for "gene_name" and columns that begin with "fpkm_unstranded"
+selected_columns_indices <- as.integer(c(2, 
+                                         grep("^fpkm_unstranded", colnames(cancer))))
+
+# Subset the data frame based on the selected columns
+cancer <- cancer[, selected_columns_indices]
+write.table(cancer, "fpkm_unstranded_cancer.csv")
+cancer = read.csv("fpkm_unstranded_cancer.csv",header = TRUE, sep = " ")
+#------------------------------------------------------------------------------#
+# Gene expression aligned against hg38
+query <- GDCquery(
+  project = "TCGA-LIHC",
+  data.category = "Transcriptome Profiling",
+  data.type = "Gene Expression Quantification", 
+  workflow.type = "STAR - Counts",
+  sample.type = c("Solid Tissue Normal")
+)
+GDCdownload(query = query)
+data <- GDCprepare(query = query, summarizedExperiment = FALSE)
+data <- data[!(data$gene_id %in% c("N_unmapped", "N_multimapping", "N_noFeature", "N_ambiguous")), ]
+
+LIHC_normal_collected = data
+LIHC_normal_collected <- as.matrix(subset(LIHC_normal_collected, gene_type == "protein_coding"))
+# Get the column indices for "gene_name" and columns that begin with "fpkm_unstranded"
+selected_columns_indices <- as.integer(c(2, 
+                              grep("^fpkm_unstranded", colnames(LIHC_normal_collected))))
+
+# Subset the data frame based on the selected columns
+LIHC_normal_collected <- LIHC_normal_collected[, selected_columns_indices]
+write.table(LIHC_normal_collected, "fpkm_unstranded_normal.csv")
+normal = read.csv("fpkm_unstranded_normal.csv", header = TRUE, sep = " ")
+#------------------------------------------------------------------------------#
+cancer = t(cancer)
+normal = t(normal)
+cancer_col= cancer[1,]
+normal_col = normal[1,]
+colnames(cancer) = cancer_col
+colnames(normal) = normal_col
+cancer <- as.matrix(cancer[-1, , drop = FALSE])
+normal <- as.matrix(normal[-1, , drop = FALSE])
+list.files()
+#-------------------------------------------------------------------------------#
+setwd("F:/5- PAN CAncer/ACTL6A/0 machine learning")
+list.files()
+genes <- c(
+  "POLE3", "HMCES", "KIAA1524", "C1orf112", "CDK1", "PIGX", "KCNMB2-AS1",
+  "PHF5A", "COMMD2", "CKS1B", "NCAPH", "RNF168", "GMPS", "THOC3", "TK1",
+  "MELK", "SNRPG", "MRPL47", "MAP3K13", "KIF11", "CEP55", "BRIX1", "RACGAP1",
+  "ALG3", "TPX2", "NUP37", "KPNA4", "TRIM59", "UMPS", "TMEM41A", "TBL1XR1",
+  "RSRC1", "ZWINT", "DDIAS", "TBCCD1", "NCBP2", "MFN1", "MTFR2", "CENPL",
+  "FANCI", "RFC4", "RNF7", "TTK", "GLRX3", "NAA50", "MCM8", "HNRNPL", "USP39",
+  "PCNA", "HNRNPA3", "ILF2", "MRPL3", "NUF2", "RFC5", "LSG1", "GINS1", "CCDC58",
+  "GPN1", "MYNN", "CENPI", "NOL10", "PARL", "KIFC1", "MCM2", "PARPBP", "ZWILCH",
+  "ZNF639", "PDCD10", "CCT5", "MASTL", "NEK2", "FBXO45", "SMC4", "TROAP", "PAK2",
+  "RAN", "UBE2T", "NDUFB5", "MRPS22", "XXYLT1", "PSMD14", "PNO1", "TRA2B", "EIF4G1",
+  "POLR2H", "LIN9", "TIMELESS", "FXR1", "MAD2L1", "RRM1", "ISY1", "DNAJB11",
+  "CCNB2", "PSMD2", "ECT2", "DNAJC19", "KIF23", "RAD51AP1", "PRC1", "H2BC6", "DMAP1",
+  "EP400", "H4C9", "H4C14", "H3C11", "SMARCB1", "SMARCA4", "H3C12", "BRD7", "H3-3A",
+  "PHF10", "KAT5", "ZNHIT1", "H4C13", "H3C7", "SMARCC2", "H3C8", "SMARCC1", "H4-16",
+  "H3C2", "H2AZ1", "EPC1", "H4C2", "H3C4", "H4C15", "H4C5", "SMARCD1", "RUVBL2", "ACTR8",
+  "ARID2", "H3C10", "ACTL6A", "H4C8", "H4C1", "TRRAP", "H4C12", "SMARCE1", "SMARCD2", "ARID1A",
+  "H4C3", "H4C4", "H4C11", "H3-3B", "PBRM1", "SMARCA2", "H4C6", "H3C3", "H3C1"
+)
+normal= as.data.frame(normal)
+cancer = as.data.frame(cancer)
+normal <- normal[, colnames(normal) %in% genes]
+cancer <- cancer[, colnames(cancer) %in% genes]
+
+write.csv(normal, "normal_selected.csv")
+write.csv(cancer, "cancer_selected.csv")
