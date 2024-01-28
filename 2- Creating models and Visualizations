@@ -1,0 +1,134 @@
+ import numpy as np
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
+from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix, f1_score, roc_curve, auc)
+
+# Set working directory
+dir = "F:/5- PAN CAncer/ACTL6A/0 machine learning"
+os.chdir(dir)
+
+# Reading data
+normal = pd.read_csv("normal_selected.csv", index_col=0)
+cancer = pd.read_csv("cancer_selected.csv", index_col=0)
+
+# Merging data frames
+X = pd.concat([normal, cancer])
+
+# Load labels
+y = {'status': ['normal'] * 50 + ['cancer'] * 371}
+y = pd.DataFrame(y)
+y = y["status"].map({"normal": 0, "cancer": 1})
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+# Logistic Regression
+lr_model = LogisticRegression(solver="liblinear", max_iter=10000, penalty='l2', C=0.5)
+lr_model.fit(X_train, y_train)
+y_pred_lr = lr_model.predict(X_test)
+
+# SVM
+svm_model = SVC(kernel='linear', C=0.1, class_weight='balanced')
+svm_model.fit(X_train, y_train)
+y_pred_svm = svm_model.predict(X_test)
+
+# Random Forest
+rf_classifier = RandomForestClassifier(n_estimators=100, max_depth=None, random_state=42)
+rf_classifier.fit(X_train, y_train)
+y_pred_rf = rf_classifier.predict(X_test)
+
+# XGBoost
+params = {'objective': 'multi:softmax', 'num_class': 3, 'max_depth': 3, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8}
+num_rounds = 100
+dtrain = xgb.DMatrix(X_train, label=y_train)
+model_xgb = xgb.train(params, dtrain, num_rounds)
+dtest = xgb.DMatrix(X_test)
+y_pred_xgb = model_xgb.predict(dtest)
+
+# Evaluate models
+# Logistic Regression
+accuracy_lr = accuracy_score(y_test, y_pred_lr)
+conf_matrix_lr = confusion_matrix(y_test, y_pred_lr)
+classification_rep_lr = classification_report(y_test, y_pred_lr)
+f1_lr = f1_score(y_test, y_pred_lr)
+
+# SVM
+accuracy_svm = accuracy_score(y_test, y_pred_svm)
+conf_matrix_svm = confusion_matrix(y_test, y_pred_svm)
+classification_rep_svm = classification_report(y_test, y_pred_svm)
+f1_svm = f1_score(y_test, y_pred_svm)
+
+# Random Forest
+accuracy_rf = accuracy_score(y_test, y_pred_rf)
+conf_matrix_rf = confusion_matrix(y_test, y_pred_rf)
+classification_rep_rf = classification_report(y_test, y_pred_rf)
+f1_rf = f1_score(y_test, y_pred_rf)
+
+# XGBoost
+accuracy_xgb = accuracy_score(y_test, y_pred_xgb)
+conf_matrix_xgb = confusion_matrix(y_test, y_pred_xgb)
+classification_rep_xgb = classification_report(y_test, y_pred_xgb)
+f1_xgb = f1_score(y_test, y_pred_xgb)
+
+# Print evaluation metrics for each model
+print('\nLogistic Regression Evaluation:')
+print(f'Accuracy: {accuracy_lr}')
+print('Confusion Matrix:\n', conf_matrix_lr)
+print('Classification Report:\n', classification_rep_lr)
+print(f"F1-Score: {f1_lr}")
+
+print('\nSVM Evaluation:')
+print(f'Accuracy: {accuracy_svm}')
+print('Confusion Matrix:\n', conf_matrix_svm)
+print('Classification Report:\n', classification_rep_svm)
+print(f"F1-Score: {f1_svm}")
+
+print('\nRandom Forest Evaluation:')
+print(f'Accuracy: {accuracy_rf}')
+print('Confusion Matrix:\n', conf_matrix_rf)
+print('Classification Report:\n', classification_rep_rf)
+print(f"F1-Score: {f1_rf}")
+
+print('\nXGBoost Evaluation:')
+print(f'Accuracy: {accuracy_xgb}')
+print('Confusion Matrix:\n', conf_matrix_xgb)
+print('Classification Report:\n', classification_rep_xgb)
+print(f"F1-Score: {f1_xgb}")
+
+# Plot ROC curves
+plt.figure(figsize=(8, 6))
+
+# Logistic Regression ROC
+fpr_lr, tpr_lr, _ = roc_curve(y_test, y_pred_lr)
+roc_auc_lr = auc(fpr_lr, tpr_lr)
+plt.plot(fpr_lr, tpr_lr, label=f'Logistic Regression (area = {roc_auc_lr:.2f})')
+
+# SVM ROC
+fpr_svm, tpr_svm, _ = roc_curve(y_test, y_pred_svm)
+roc_auc_svm = auc(fpr_svm, tpr_svm)
+plt.plot(fpr_svm, tpr_svm, label=f'SVM (area = {roc_auc_svm:.2f})')
+
+# Random Forest ROC
+fpr_rf, tpr_rf, _ = roc_curve(y_test, y_pred_rf)
+roc_auc_rf = auc(fpr_rf, tpr_rf)
+plt.plot(fpr_rf, tpr_rf, label=f'Random Forest (area = {roc_auc_rf:.2f})')
+
+# XGBoost ROC
+fpr_xgb, tpr_xgb, _ = roc_curve(y_test, y_pred_xgb)
+roc_auc_xgb = auc(fpr_xgb, tpr_xgb)
+plt.plot(fpr_xgb, tpr_xgb, label=f'XGBoost (area = {roc_auc_xgb:.2f})')
+
+# Plotting the random classifier (diagonal line)
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+
+plt.xlabel('False Positive Rate (FPR)')
+plt.ylabel('True Positive Rate (TPR)')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc='lower right')
+plt.show()
